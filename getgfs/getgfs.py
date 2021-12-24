@@ -94,7 +94,9 @@ class Forecast:
             How many timesteps into the forecast to retrieve forecast results.
             query_time (string): e.g. '[10]' is the 10th timestep in the
             forecast, if resolution='3hr', this will be 30 hours in the future,
-            or if '1hr' it'll be 10 hours in the future.
+            or if '1hr' it'll be 10 hours in the future. '[0:3]' will get you 4
+            results out to +3 time steps.  '[10:20]' will get you 11 time steps
+            from the 10th through the 20th inclusive.
 
 
 

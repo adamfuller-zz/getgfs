@@ -109,23 +109,23 @@ class File:
 
 
     def to_DataFrame(self):
-        res = {}
-        for k,v in self.variables.items():
-            x = {}
-            time = v.coords['time'].values  # ever more than 1 timestamp value here?
-            if len(time)>1:
-                print("This code note yet built to handle >1 time value, got {}: {}, taking the first: {}".format(len(time), time, time[0]))
-            time = time[0]
+        res = []
+        for variablename,v in self.variables.items():
+            time = v.coords['time'].values  # can be more than 1 when query_time looks like a range e.g. '[:10]'.
+            data = v.data
             lat = v.coords['lat'].values
             lon = v.coords['lon'].values
-            data = v.data
-            if data.shape[0]>1:
-                print("Expecting the first array dim to be redundant with length 1 corresponding to 1 time value, instead first dim is {} long with values {}.  Taking only the first value along the first time {}.".format(len(data), data[0], data[0][0]))
-            data = data[0]
+            for ordinal,array in zip(time, data):
 
-            res[k] = pd.DataFrame(data, index=pd.Index(lat, name='lat'), columns=pd.Index(lon, name='lon'))
+                res.append(pd.DataFrame(
+                    array,
+                    index=pd.Index(lat, name='lat'),
+                    columns=pd.Index(lon, name='lon')
+                ).stack().rename((variablename, pd.Timestamp.fromordinal(int(ordinal), tz='UTC')+pd.Timedelta(hours=round((ordinal%1)*24)))))
+                # Why round?: for whatever reason, 9 hours is returned at 0.370 days when it should be 0.375
 
-        return pd.concat(res, names=['Variable'])
+        return pd.concat(res, axis=1).rename_axis(columns=['variable', 'time']).stack().swaplevel(0,2).sort_index()
+        # gets the format DataFrame to MultiIndex: time, lat, lon, and with variables as columns.
 
 
 def replace_val(arr, val, position):
