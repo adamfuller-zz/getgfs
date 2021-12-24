@@ -1,6 +1,7 @@
 """Decodes the downloaded files to extract the variables and their coordinates"""
 import re
 import numpy as np
+import pandas as pd
 
 
 class Variable:
@@ -105,6 +106,26 @@ class File:
     def __str__(self):
         print(type(self))
         return "File containing %s" % self.variables.keys()
+
+
+    def to_DataFrame(self):
+        res = []
+        for variablename,v in self.variables.items():
+            time = v.coords['time'].values  # can be more than 1 when query_time looks like a range e.g. '[:10]'.
+            data = v.data
+            lat = v.coords['lat'].values
+            lon = v.coords['lon'].values
+            for ordinal,array in zip(time, data):
+
+                res.append(pd.DataFrame(
+                    array,
+                    index=pd.Index(lat, name='lat'),
+                    columns=pd.Index(lon, name='lon')
+                ).stack().rename((variablename, pd.Timestamp.fromordinal(int(ordinal), tz='UTC')+pd.Timedelta(hours=round((ordinal%1)*24)))))
+                # Why round?: for whatever reason, 9 hours is returned at 0.370 days when it should be 0.375
+
+        return pd.concat(res, axis=1).rename_axis(columns=['variable', 'time']).stack().swaplevel(0,2).sort_index()
+        # gets the format DataFrame to MultiIndex: time, lat, lon, and with variables as columns.
 
 
 def replace_val(arr, val, position):
