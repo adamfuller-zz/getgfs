@@ -1,6 +1,7 @@
 """Decodes the downloaded files to extract the variables and their coordinates"""
 import re
 import numpy as np
+import pandas as pd
 
 
 class Variable:
@@ -105,6 +106,26 @@ class File:
     def __str__(self):
         print(type(self))
         return "File containing %s" % self.variables.keys()
+
+
+    def to_DataFrame(self):
+        res = {}
+        for k,v in self.variables.items():
+            x = {}
+            time = v.coords['time'].values  # ever more than 1 timestamp value here?
+            if len(time)>1:
+                print("This code note yet built to handle >1 time value, got {}: {}, taking the first: {}".format(len(time), time, time[0]))
+            time = time[0]
+            lat = v.coords['lat'].values
+            lon = v.coords['lon'].values
+            data = v.data
+            if data.shape[0]>1:
+                print("Expecting the first array dim to be redundant with length 1 corresponding to 1 time value, instead first dim is {} long with values {}.  Taking only the first value along the first time {}.".format(len(data), data[0], data[0][0]))
+            data = data[0]
+
+            res[k] = pd.DataFrame(data, index=pd.Index(lat, name='lat'), columns=pd.Index(lon, name='lon'))
+
+        return pd.concat(res, names=['Variable'])
 
 
 def replace_val(arr, val, position):

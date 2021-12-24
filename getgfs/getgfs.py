@@ -73,7 +73,7 @@ class Forecast:
         self.timestep = timestep
         self.times, self.coords, self.variables = get_attributes(resolution, timestep)
 
-    def get(self, variables, date_time, lat, lon):
+    def get(self, variables, date_time, lat, lon, forecast_date=None, forecast_time=None, query_time=None):
         """Returns the latest forecast available for the requested date and time
 
         Note
@@ -87,6 +87,18 @@ class Forecast:
             lat (string or number): latitude in the format "[min:max]" or a single value
             lon (string or number): longitude in the format "[min:max]" or a single value
 
+            The forecast run date and hour you want the forecast for:
+            forecast_date (string): %Y%m%d (e.g. 2021
+            forecast_time (string): %H (24-hour zeropadded) in ['00', '06', '12', '18'].
+
+            How many timesteps into the forecast to retrieve forecast results.
+            query_time (string): e.g. '[10]' is the 10th timestep in the
+            forecast, if resolution='3hr', this will be 30 hours in the future,
+            or if '1hr' it'll be 10 hours in the future.
+
+
+
+
         Raises:
             ValueError: Invalid variable choice
             ValueError: Level dependance needs to be specified for chosen variable
@@ -97,7 +109,8 @@ class Forecast:
         """
 
         # Get forecast date run, date, time
-        forecast_date, forecast_time, query_time = self.datetime_to_forecast(date_time)
+        if forecast_date is None and forecast_time is None and query_time is None:
+            forecast_date, forecast_time, query_time = self.datetime_to_forecast(date_time)
 
         # Get latitude
         lat = self.value_input_to_index("lat", lat)
@@ -256,8 +269,8 @@ class Forecast:
         """
         if isinstance(inpt, str):
             if inpt[0] == "[" and inpt[-1] == "]" and ":" in inpt:
-                val_1 = float(re.findall(r"\[(.*?):", inpt))
-                val_2 = float(re.findall(r"\:(.*?)]", inpt))
+                val_1 = float(re.findall(r"\[(.*?):", inpt)[0])
+                val_2 = float(re.findall(r"\:(.*?)]", inpt)[0])
                 val_min = self.value_to_index(coord, min(val_1, val_2))
                 val_max = self.value_to_index(coord, max(val_1, val_2))
                 ind = "[%s:%s]" % (val_min, val_max)
